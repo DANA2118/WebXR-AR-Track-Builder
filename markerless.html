@@ -6,7 +6,8 @@
     <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
   </head>
   <body style="margin:0; overflow:hidden;">
-    <a-scene webxr="optionalFeatures: hit-test, local-floor;"
+    <a-scene xr-mode-ui="XRMode: ar;"
+              webxr="optionalFeatures: hit-test, local-floor;"
               ar-hit-test="target:#test-object;">
       <a-box id="test-object" color="#4CC3D9" scale="0.1 0.1 0.1" visible="false"></a-box>
     </a-scene>
