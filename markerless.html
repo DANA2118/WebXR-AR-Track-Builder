@@ -42,10 +42,10 @@
       var pos = reticle.object3D.position;
       log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
 
-      var marker = document.createElement('a-box');
-      marker.setAttribute('color', 'red');
-      marker.setAttribute('scale', '0.3 0.3 0.3');
-      marker.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+      var piece = document.createElement('a-entity');
+      piece.setAttribute('gltf-model', '#track-model');
+      piece.setAttribute('scale', '0.2 0.2 0.2');
+      piece.setAttribute('position', (pos.x + 0.5) + ' ' + pos.y + ' ' + pos.z);
       container.appendChild(marker);
 
       var piece = document.createElement('a-entity');
