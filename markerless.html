@@ -8,8 +8,29 @@
   <body style="margin:0; overflow:hidden;">
     <a-scene xr-mode-ui="XRMode: ar;"
               webxr="requiredFeatures: hit-test, local-floor;"
-              ar-hit-test="target:#test-object;">
-      <a-box id="test-object" color="#4CC3D9" scale="0.1 0.1 0.1" visible="false"></a-box>
+              ar-hit-test="target:#reticle;">
+
+      <a-assets>
+        <a-asset-item id="track-model" src="models/track.glb"></a-asset-item>
+      </a-assets>
+
+      <a-entity id="reticle"></a-entity>
+      <a-entity id="placed-pieces"></a-entity>
     </a-scene>
+
+    <script>
+      var scene = document.querySelector('a-scene');
+      var reticle = document.querySelector('#reticle');
+      var container = document.querySelector('#placed-pieces');
+
+      scene.addEventListener('ar-hit-test-select', function () {
+        var pos = reticle.object3D.position;
+
+        var piece = document.createElement('a-entity');
+        piece.setAttribute('gltf-model', '#track-model');
+        piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+        container.appendChild(piece);
+      });
+    </script>
   </body>
 </html>
