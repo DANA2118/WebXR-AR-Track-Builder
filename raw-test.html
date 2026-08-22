@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Raw WebXR Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;font-family:monospace;font-size:16px;padding:20px;">
+  <button id="btn" style="padding:16px 24px;font-size:18px;">Test Raw WebXR AR</button>
+  <pre id="out" style="white-space:pre-wrap;margin-top:20px;"></pre>
+  <script>
+    var out = document.getElementById('out');
+    function log(t) { out.textContent += t + '\n'; }
+
+    document.getElementById('btn').addEventListener('click', function () {
+      log('navigator.xr exists: ' + (!!navigator.xr));
+      if (!navigator.xr) { log('No navigator.xr — not a secure context or unsupported browser'); return; }
+
+      navigator.xr.isSessionSupported('immersive-ar').then(function (supported) {
+        log('isSessionSupported(immersive-ar): ' + supported);
+        return navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['hit-test', 'local-floor']
+        });
+      }).then(function (session) {
+        log('SUCCESS — session actually started.');
+        session.end();
+      }).catch(function (err) {
+        log('FAILED: ' + err.name + ' — ' + err.message);
+      });
+    });
+  </script>
+</body>
+</html>
