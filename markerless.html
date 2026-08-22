@@ -1,50 +1,62 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>AR Track Builder - Markerless</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
-  </head>
-  <body style="margin:0; overflow:hidden;">
 
-    <a-scene xr-mode-ui="XRMode: ar;"
-              webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #log;"
-              ar-hit-test="target:#reticle;">
+<head>
+  <title>AR Track Builder - Markerless</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+</head>
 
-      <a-assets>
-        <a-asset-item id="track-model" src="models/track.glb"></a-asset-item>
-      </a-assets>
+<body style="margin:0; overflow:hidden;">
 
-      <a-entity id="reticle"></a-entity>
-      <a-entity id="placed-pieces"></a-entity>
-    </a-scene>
+  <a-scene xr-mode-ui="XRMode: ar;"
+    webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #log;"
+    ar-hit-test="target:#reticle;">
 
-    <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
+    <a-assets>
+      <a-asset-item id="track-model" src="models/track.glb"></a-asset-item>
+    </a-assets>
+
+    <a-entity id="reticle"></a-entity>
+    <a-entity id="placed-pieces"></a-entity>
+
+    <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
+    <a-light type="directional" color="#FFF" intensity="0.8" position="1 1 1"></a-light>
+  </a-scene>
+
+  <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
          color:white;font-size:13px;padding:8px;max-height:250px;
          overflow:auto;font-family:monospace;white-space:pre-wrap;pointer-events:none;"></div>
 
-    <script>
-      var logEl = document.getElementById('log');
-      function log(t) { logEl.innerText += t + '\n'; }
+  <script>
+    var logEl = document.getElementById('log');
+    function log(t) { logEl.innerText += t + '\n'; }
 
-      var scene = document.querySelector('a-scene');
-      var reticle = document.querySelector('#reticle');
-      var container = document.querySelector('#placed-pieces');
+    var scene = document.querySelector('a-scene');
+    var reticle = document.querySelector('#reticle');
+    var container = document.querySelector('#placed-pieces');
 
-      scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
-      scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
-      scene.addEventListener('ar-hit-test-select', function () {
-        var pos = reticle.object3D.position;
-        log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
+    scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
+    scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
+    scene.addEventListener('ar-hit-test-select', function () {
+      var pos = reticle.object3D.position;
+      log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
 
-        var piece = document.createElement('a-entity');
-        piece.setAttribute('gltf-model', '#track-model');
-        piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
-        piece.addEventListener('model-loaded', function () { log('track model LOADED'); });
-        piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
-        container.appendChild(piece);
-        log('piece appended to scene');
-      });
-    </script>
-  </body>
+      var marker = document.createElement('a-box');
+      marker.setAttribute('color', 'red');
+      marker.setAttribute('scale', '0.3 0.3 0.3');
+      marker.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+      container.appendChild(marker);
+
+      var piece = document.createElement('a-entity');
+      piece.setAttribute('gltf-model', '#track-model');
+      piece.setAttribute('position', (pos.x + 0.5) + ' ' + pos.y + ' ' + pos.z);
+      piece.addEventListener('model-loaded', function () { log('track model LOADED'); });
+      piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
+      container.appendChild(piece);
+      log('piece + debug marker appended');
+    });
+  </script>
+</body>
+
 </html>
