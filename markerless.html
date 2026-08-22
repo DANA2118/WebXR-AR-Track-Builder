@@ -6,12 +6,9 @@
     <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
   </head>
   <body style="margin:0; overflow:hidden;">
-    <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
-         color:white;font-size:13px;padding:8px;z-index:99999;max-height:250px;
-         overflow:auto;font-family:monospace;white-space:pre-wrap;"></div>
 
     <a-scene xr-mode-ui="XRMode: ar;"
-              webxr="requiredFeatures: hit-test, local-floor;"
+              webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #log;"
               ar-hit-test="target:#reticle;">
 
       <a-assets>
@@ -22,6 +19,10 @@
       <a-entity id="placed-pieces"></a-entity>
     </a-scene>
 
+    <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
+         color:white;font-size:13px;padding:8px;max-height:250px;
+         overflow:auto;font-family:monospace;white-space:pre-wrap;pointer-events:none;"></div>
+
     <script>
       var logEl = document.getElementById('log');
       function log(t) { logEl.innerText += t + '\n'; }
@@ -30,23 +31,19 @@
       var reticle = document.querySelector('#reticle');
       var container = document.querySelector('#placed-pieces');
 
-      scene.addEventListener('ar-hit-test-start', function () {
-        log('ar-hit-test-start: scanning for surface...');
-      });
-      scene.addEventListener('ar-hit-test-achieved', function () {
-        log('ar-hit-test-achieved: surface found, ready to place');
-      });
+      scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
+      scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
       scene.addEventListener('ar-hit-test-select', function () {
         var pos = reticle.object3D.position;
-        log('ar-hit-test-select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
+        log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
 
         var piece = document.createElement('a-entity');
         piece.setAttribute('gltf-model', '#track-model');
         piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
-        piece.addEventListener('model-loaded', function () { log('track model LOADED successfully'); });
-        piece.addEventListener('model-error', function (e) { log('track model FAILED to load: ' + JSON.stringify(e.detail)); });
+        piece.addEventListener('model-loaded', function () { log('track model LOADED'); });
+        piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
         container.appendChild(piece);
-        log('piece entity created and appended');
+        log('piece appended to scene');
       });
     </script>
   </body>
