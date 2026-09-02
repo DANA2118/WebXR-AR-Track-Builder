@@ -63,9 +63,19 @@
     var waypoints = [];   // ordered track piece positions -> the path the car follows
     var barrierPositions = []; // barrier positions -> collision targets
 
+    function clearContainer(container) {
+      while (container.firstChild) {
+        var child = container.firstChild;
+        if (child.object3D && child.object3D.parent) {
+          child.object3D.parent.remove(child.object3D); // force it out of the Three.js scene graph immediately
+        }
+        container.removeChild(child);
+      }
+    }
+
     document.getElementById('clear-btn').addEventListener('click', function () {
-      trackContainer.innerHTML = '';
-      barrierContainer.innerHTML = '';
+      clearContainer(trackContainer);
+      clearContainer(barrierContainer);
       waypoints = [];
       barrierPositions = [];
       carEl.setAttribute('visible', false);
