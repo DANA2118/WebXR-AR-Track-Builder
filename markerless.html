@@ -10,160 +10,68 @@
 <body style="margin:0; overflow:hidden;">
 
   <a-scene xr-mode-ui="XRMode: ar;"
-    webxr="optionalFeatures: hit-test, local-floor, dom-overlay; overlayElement: #overlay;"
+    webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;"
     ar-hit-test="target:#reticle;">
 
     <a-assets>
       <a-asset-item id="track-model" src="models/track.glb"></a-asset-item>
       <a-asset-item id="barrier-model" src="models/barrier.glb"></a-asset-item>
-      <a-asset-item id="car-model" src="models/car.glb"></a-asset-item>
+      <a-asset-item id="cone-model" src="models/cone.glb"></a-asset-item>
     </a-assets>
 
-    <!-- reticle shown by ar-hit-test while scanning for a surface -->
-    <a-entity id="reticle" geometry="primitive: ring; radiusInner: 0.04; radiusOuter: 0.05"
-      material="color: #4CC3D9; shader: flat" rotation="-90 0 0" visible="false"></a-entity>
+    <a-entity id="reticle"></a-entity>
+    <a-entity id="placed-pieces"></a-entity>
 
-    <a-entity id="track-pieces"></a-entity>
-    <a-entity id="barriers"></a-entity>
-    <a-entity id="car" gltf-model="#car-model" scale="0.003 0.003 0.003" visible="false"></a-entity>
-
-    <a-light type="ambient" color="#FFF" intensity="0.9"></a-light>
-    <a-light type="directional" color="#FFF" intensity="0.7" position="1 1 1"></a-light>
+    <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
+    <a-light type="directional" color="#FFF" intensity="0.8" position="1 1 1"></a-light>
   </a-scene>
 
-  <!-- dom-overlay UI: buttons + status log, shown only while an AR session is active -->
-  <div id="overlay" style="position:fixed;inset:0;pointer-events:none;font-family:sans-serif;">
-    <div id="controls" style="position:absolute;bottom:16px;left:0;right:0;display:flex;
-         justify-content:center;gap:10px;pointer-events:auto;">
-      <button id="mode-track" style="padding:10px 16px;font-size:14px;">Place Track</button>
-      <button id="mode-barrier" style="padding:10px 16px;font-size:14px;">Place Barrier</button>
-      <button id="start-btn" style="padding:10px 16px;font-size:14px;background:#2ecc71;color:#fff;">Start Car</button>
-      <button id="clear-btn" style="padding:10px 16px;font-size:14px;">Clear</button>
+  <!-- overlay wraps both the log and the buttons; pointer-events:none on the
+       wrapper lets AR taps pass through everywhere EXCEPT the buttons themselves -->
+  <div id="overlay" style="position:fixed; inset:0; pointer-events:none;">
+    <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
+         color:white;font-size:13px;padding:8px;max-height:200px;
+         overflow:auto;font-family:monospace;white-space:pre-wrap;pointer-events:none;"></div>
+
+    <div id="picker" style="position:fixed; bottom:20px; left:0; right:0;
+         display:flex; justify-content:center; gap:10px; pointer-events:auto;">
+      <button class="piece-btn" data-type="track-model"
+        style="padding:14px 20px; font-size:15px; font-weight:bold;">Track</button>
+      <button class="piece-btn" data-type="barrier-model"
+        style="padding:14px 20px; font-size:15px; font-weight:bold;">Barrier</button>
+      <button class="piece-btn" data-type="cone-model"
+        style="padding:14px 20px; font-size:15px; font-weight:bold;">Cone</button>
     </div>
-    <div id="log" style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.6);
-         color:#fff;font-size:12px;padding:6px;max-height:120px;overflow:auto;
-         font-family:monospace;white-space:pre-wrap;"></div>
   </div>
 
   <script>
     var logEl = document.getElementById('log');
-    function log(t) { logEl.innerText += t + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+    function log(t) { logEl.innerText += t + '\n'; }
 
     var scene = document.querySelector('a-scene');
     var reticle = document.querySelector('#reticle');
-    var trackContainer = document.querySelector('#track-pieces');
-    var barrierContainer = document.querySelector('#barriers');
-    var carEl = document.querySelector('#car');
+    var container = document.querySelector('#placed-pieces');
+    var currentType = 'track-model'; // default selection
 
-    // ---- placement mode state ----
-    var mode = 'track'; // 'track' | 'barrier'
-    document.getElementById('mode-track').addEventListener('click', function () { mode = 'track'; log('mode: track'); });
-    document.getElementById('mode-barrier').addEventListener('click', function () { mode = 'barrier'; log('mode: barrier'); });
-
-    var waypoints = [];   // ordered track piece positions -> the path the car follows
-    var barrierPositions = []; // barrier positions -> collision targets
-
-    function clearContainer(container) {
-      while (container.firstChild) {
-        var child = container.firstChild;
-        if (child.object3D && child.object3D.parent) {
-          child.object3D.parent.remove(child.object3D); // force it out of the Three.js scene graph immediately
-        }
-        container.removeChild(child);
-      }
-    }
-
-    document.getElementById('clear-btn').addEventListener('click', function () {
-      clearContainer(trackContainer);
-      clearContainer(barrierContainer);
-      waypoints = [];
-      barrierPositions = [];
-      carEl.setAttribute('visible', false);
-      log('cleared');
+    document.querySelectorAll('.piece-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        currentType = btn.getAttribute('data-type');
+        log('selected: ' + currentType);
+      });
     });
 
     scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
-    scene.addEventListener('ar-hit-test-achieved', function () { log('surface found — tap to place'); });
-
+    scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
     scene.addEventListener('ar-hit-test-select', function () {
       var pos = reticle.object3D.position;
-      var p = { x: pos.x, y: pos.y, z: pos.z };
+      log('placing ' + currentType + ' at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
 
-      if (mode === 'track') {
-        var piece = document.createElement('a-entity');
-        piece.setAttribute('gltf-model', '#track-model');
-        piece.setAttribute('scale', '0.01 0.01 0.01');
-        piece.setAttribute('position', p.x + ' ' + p.y + ' ' + p.z);
-        trackContainer.appendChild(piece);
-        waypoints.push(p);
-        log('track piece #' + waypoints.length + ' placed');
-      } else {
-        var barrier = document.createElement('a-entity');
-        barrier.setAttribute('gltf-model', '#barrier-model');
-        barrier.setAttribute('scale', '0.5 0.5 0.5');
-        barrier.setAttribute('position', p.x + ' ' + p.y + ' ' + p.z);
-        barrierContainer.appendChild(barrier);
-        barrierPositions.push({ pos: p, el: barrier, hit: false });
-        log('barrier #' + barrierPositions.length + ' placed');
-      }
+      var piece = document.createElement('a-entity');
+      piece.setAttribute('gltf-model', '#' + currentType);
+      piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+      piece.addEventListener('model-error', function (e) { log(currentType + ' FAILED: ' + JSON.stringify(e.detail)); });
+      container.appendChild(piece);
     });
-
-    // ---- car movement + collision detection ----
-    var driving = false;
-    var currentTarget = 0;
-    var speed = 0.6; // meters/second
-    var COLLISION_DIST = 0.35; // meters, tuned for the demo-proportioned car/barrier scale above
-
-    document.getElementById('start-btn').addEventListener('click', function () {
-      if (waypoints.length < 2) { log('place at least 2 track pieces first'); return; }
-      carEl.setAttribute('visible', true);
-      carEl.setAttribute('position', waypoints[0].x + ' ' + waypoints[0].y + ' ' + waypoints[0].z);
-      currentTarget = 1;
-      driving = true;
-      barrierPositions.forEach(function (b) { b.hit = false; });
-      log('car started');
-    });
-
-    function flashBarrier(barrier) {
-      if (barrier.hit) return;
-      barrier.hit = true;
-      var el = barrier.el;
-      el.setAttribute('material', 'color: #ff3333');
-      log('collision! car hit a barrier');
-      setTimeout(function () { el.removeAttribute('material'); }, 600);
-      driving = false; // stop the demo run on first collision
-    }
-
-    var lastTime = null;
-    scene.addEventListener('renderstart', function () {
-      scene.object3D.parent && scene.object3D.parent.updateMatrixWorld;
-    });
-
-    AFRAME.registerComponent('drive-loop', {
-      tick: function (time, delta) {
-        if (!driving || currentTarget >= waypoints.length) return;
-        var dt = delta / 1000;
-        var carPos = carEl.object3D.position;
-        var target = waypoints[currentTarget];
-        var dx = target.x - carPos.x, dz = target.z - carPos.z;
-        var dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 0.05) {
-          currentTarget++;
-          if (currentTarget >= waypoints.length) { driving = false; log('car reached the end'); return; }
-        } else {
-          var step = speed * dt;
-          carPos.x += (dx / dist) * step;
-          carPos.z += (dz / dist) * step;
-          carEl.object3D.rotation.y = Math.atan2(dx, dz);
-        }
-        // collision check against every barrier every tick
-        barrierPositions.forEach(function (b) {
-          var bdx = b.pos.x - carPos.x, bdz = b.pos.z - carPos.z;
-          if (Math.sqrt(bdx * bdx + bdz * bdz) < COLLISION_DIST) flashBarrier(b);
-        });
-      }
-    });
-    scene.setAttribute('drive-loop', '');
   </script>
 </body>
 
