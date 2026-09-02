@@ -39,18 +39,17 @@
     scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
     scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
     scene.addEventListener('ar-hit-test-select', function () {
-      scene.addEventListener('ar-hit-test-select', function () {
-        var pos = reticle.object3D.position;
-        log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
+      var pos = reticle.object3D.position;
+      log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
 
-        var piece = document.createElement('a-entity');
-        piece.setAttribute('gltf-model', '#track-model');
-        piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
-        piece.addEventListener('model-loaded', function () { log('track model LOADED'); });
-        piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
-        container.appendChild(piece);
-        log('piece appended');
-      });
+      var piece = document.createElement('a-entity');
+      piece.setAttribute('gltf-model', '#track-model');
+      piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+      piece.addEventListener('model-loaded', function () { log('track model LOADED'); });
+      piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
+      container.appendChild(piece);
+      log('piece appended');
+    });
   </script>
 </body>
 
