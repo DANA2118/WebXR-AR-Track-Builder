@@ -39,34 +39,18 @@
     scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
     scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
     scene.addEventListener('ar-hit-test-select', function () {
-      var pos = reticle.object3D.position;
-      log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
+      scene.addEventListener('ar-hit-test-select', function () {
+        var pos = reticle.object3D.position;
+        log('select fired at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
 
-      var marker = document.createElement('a-box');
-      marker.setAttribute('color', 'red');
-      marker.setAttribute('scale', '0.3 0.3 0.3');
-      marker.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
-      container.appendChild(marker);
-
-      var piece = document.createElement('a-entity');
-      piece.setAttribute('gltf-model', '#track-model');
-      piece.setAttribute('scale', '0.2 0.2 0.2');
-      piece.setAttribute('position', (pos.x + 0.5) + ' ' + pos.y + ' ' + pos.z);
-
-      piece.addEventListener('model-loaded', function (e) {
-        log('track model LOADED');
-        var mesh = e.detail.model;
-        var box = new THREE.Box3().setFromObject(mesh);
-        var center = box.getCenter(new THREE.Vector3());
-        var size = box.getSize(new THREE.Vector3());
-        log('bbox center: ' + center.x.toFixed(2) + ',' + center.y.toFixed(2) + ',' + center.z.toFixed(2));
-        log('bbox size: ' + size.x.toFixed(2) + ',' + size.y.toFixed(2) + ',' + size.z.toFixed(2));
-        mesh.position.sub(center); // re-center the mesh on the entity's own origin
+        var piece = document.createElement('a-entity');
+        piece.setAttribute('gltf-model', '#track-model');
+        piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+        piece.addEventListener('model-loaded', function () { log('track model LOADED'); });
+        piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
+        container.appendChild(piece);
+        log('piece appended');
       });
-      piece.addEventListener('model-error', function (e) { log('track model FAILED: ' + JSON.stringify(e.detail)); });
-      container.appendChild(piece);
-      log('piece + debug marker appended');
-    });
   </script>
 </body>
 
