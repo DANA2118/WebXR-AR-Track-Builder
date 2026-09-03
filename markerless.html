@@ -16,6 +16,7 @@
     <a-assets>
       <a-asset-item id="track-model" src="models/track.glb"></a-asset-item>
       <a-asset-item id="cone-model" src="models/cone.glb"></a-asset-item>
+      <a-asset-item id="car-model" src="models/car.glb"></a-asset-item>
     </a-assets>
 
     <a-entity id="reticle"></a-entity>
@@ -25,19 +26,21 @@
     <a-light type="directional" color="#FFF" intensity="0.8" position="1 1 1"></a-light>
   </a-scene>
 
-  <!-- overlay wraps both the log and the buttons; pointer-events:none on the
-       wrapper lets AR taps pass through everywhere EXCEPT the buttons themselves -->
   <div id="overlay" style="position:fixed; inset:0; pointer-events:none;">
     <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
-         color:white;font-size:13px;padding:8px;max-height:200px;
+         color:white;font-size:13px;padding:8px;max-height:180px;
          overflow:auto;font-family:monospace;white-space:pre-wrap;pointer-events:none;"></div>
 
     <div id="picker" style="position:fixed; bottom:20px; left:0; right:0;
-     display:flex; justify-content:center; gap:10px; pointer-events:auto;">
+         display:flex; justify-content:center; gap:10px; pointer-events:auto;">
       <button class="piece-btn" data-type="track-model"
-        style="padding:14px 20px; font-size:15px; font-weight:bold;">Track</button>
+        style="padding:14px 18px; font-size:14px; font-weight:bold;">Track</button>
       <button class="piece-btn" data-type="cone-model"
-        style="padding:14px 20px; font-size:15px; font-weight:bold;">Cone</button>
+        style="padding:14px 18px; font-size:14px; font-weight:bold;">Cone</button>
+      <button class="piece-btn" data-type="car-model"
+        style="padding:14px 18px; font-size:14px; font-weight:bold;">Car</button>
+      <button id="drive-btn"
+        style="padding:14px 18px; font-size:14px; font-weight:bold; background:#4CC3D9; color:white;">Drive!</button>
     </div>
   </div>
 
@@ -48,7 +51,9 @@
     var scene = document.querySelector('a-scene');
     var reticle = document.querySelector('#reticle');
     var container = document.querySelector('#placed-pieces');
-    var currentType = 'track-model'; // default selection
+    var currentType = 'track-model';
+    var lastCar = null;
+    var driving = false;
 
     document.querySelectorAll('.piece-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -61,13 +66,56 @@
     scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
     scene.addEventListener('ar-hit-test-select', function () {
       var pos = reticle.object3D.position;
-      log('placing ' + currentType + ' at: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2));
-
       var piece = document.createElement('a-entity');
       piece.setAttribute('gltf-model', '#' + currentType);
       piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+      piece.setAttribute('data-piece-type', currentType);
+      if (currentType === 'car-model') { lastCar = piece; }
       piece.addEventListener('model-error', function (e) { log(currentType + ' FAILED: ' + JSON.stringify(e.detail)); });
       container.appendChild(piece);
+      log('placed ' + currentType);
+    });
+
+    function flashScreen() {
+      var flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;inset:0;background:red;opacity:0.6;pointer-events:none;z-index:9998;';
+      document.getElementById('overlay').appendChild(flash);
+      setTimeout(function () { flash.remove(); }, 400);
+    }
+
+    document.getElementById('drive-btn').addEventListener('click', function () {
+      if (!lastCar || driving) { log('place a car first'); return; }
+      driving = true;
+      log('car driving...');
+
+      var startPos = lastCar.object3D.position.clone();
+      var startTime = performance.now();
+      var speed = 0.3; // meters per second
+      var crashed = false;
+
+      function tick() {
+        if (crashed) return;
+        var elapsed = (performance.now() - startTime) / 1000;
+        lastCar.object3D.position.set(startPos.x, startPos.y, startPos.z - speed * elapsed);
+
+        var cones = container.querySelectorAll('[data-piece-type="cone-model"]');
+        for (var i = 0; i < cones.length; i++) {
+          var conePos = cones[i].object3D.position;
+          var dx = lastCar.object3D.position.x - conePos.x;
+          var dz = lastCar.object3D.position.z - conePos.z;
+          var dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < 0.15) {
+            crashed = true;
+            driving = false;
+            log('CRASH detected with cone!');
+            flashScreen();
+            return;
+          }
+        }
+        if (elapsed < 5) { requestAnimationFrame(tick); }
+        else { driving = false; log('drive finished, no collision'); }
+      }
+      requestAnimationFrame(tick);
     });
   </script>
 </body>
