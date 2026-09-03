@@ -27,9 +27,11 @@
   </a-scene>
 
   <div id="overlay" style="position:fixed; inset:0; pointer-events:none;">
-    <div id="log" style="position:fixed;top:0;left:0;right:0;background:rgba(255,0,0,0.85);
-         color:white;font-size:13px;padding:8px;max-height:180px;
-         overflow:auto;font-family:monospace;white-space:pre-wrap;pointer-events:none;"></div>
+    <div id="hint" style="position:fixed; top:16px; left:0; right:0; text-align:center;
+         color:white; font-family:sans-serif; font-size:14px; text-shadow:0 1px 3px black;
+         pointer-events:none;">
+      Point at a floor/table &middot; pick a piece below &middot; tap to place
+    </div>
 
     <div id="picker" style="position:fixed; bottom:20px; left:0; right:0;
          display:flex; justify-content:center; gap:10px; pointer-events:auto;">
@@ -45,28 +47,22 @@
   </div>
 
   <script>
-    var logEl = document.getElementById('log');
-    function log(t) { logEl.innerText += t + '\n'; }
-
     var scene = document.querySelector('a-scene');
     var reticle = document.querySelector('#reticle');
     var container = document.querySelector('#placed-pieces');
     var currentType = 'track-model';
     var lastCar = null;
-    var lastTrack = null;
     var driving = false;
 
     document.querySelectorAll('.piece-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         currentType = btn.getAttribute('data-type');
-        log('selected: ' + currentType);
+        console.log('selected:', currentType);
       });
     });
 
-    scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
-    scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
     scene.addEventListener('ar-hit-test-select', function () {
-      if (driving) { log('ignored tap - car is driving'); return; }
+      if (driving) { console.log('ignored tap - car is driving'); return; }
 
       var pos = reticle.object3D.position;
       var piece = document.createElement('a-entity');
@@ -78,12 +74,10 @@
         piece.setAttribute('scale', '0.001 0.001 0.001');
         piece.setAttribute('rotation', '0 180 0');
         lastCar = piece;
-      } else if (currentType === 'track-model') {
-        lastTrack = piece;
       }
 
-      log('placed ' + currentType + ' at ' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2));
-      piece.addEventListener('model-error', function (e) { log(currentType + ' FAILED: ' + JSON.stringify(e.detail)); });
+      console.log('placed', currentType, 'at', pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2));
+      piece.addEventListener('model-error', function (e) { console.error(currentType, 'FAILED', e.detail); });
       container.appendChild(piece);
     });
 
@@ -94,83 +88,20 @@
       setTimeout(function () { flash.remove(); }, 400);
     }
 
-    // Define track waypoints (relative positions along the track)
-    // Adjust these based on your actual track shape
-    var trackWaypoints = [
-      { x: 0.0, z: 0.0 },      // start
-      { x: 0.1, z: -0.2 },     // curve right
-      { x: 0.3, z: -0.4 },     // continue curve
-      { x: 0.5, z: -0.6 },     // middle
-      { x: 0.6, z: -0.8 },     // curve back
-      { x: 0.4, z: -1.0 },     // sharp turn
-      { x: 0.1, z: -1.2 },     // exit curve
-      { x: -0.2, z: -1.3 }     // end
-    ];
-
     document.getElementById('drive-btn').addEventListener('click', function () {
-      if (!lastCar || driving) { log('place a car and track first'); return; }
+      if (!lastCar || driving) { console.log('place a car first'); return; }
       driving = true;
-      log('car driving along track...');
 
       var startPos = lastCar.object3D.position.clone();
-      var trackPos = lastTrack ? lastTrack.object3D.position.clone() : { x: 0, y: 0, z: 0 };
       var startTime = performance.now();
-      var speed = 0.5; // meters per second
+      var speed = 0.3;
       var crashed = false;
-      var waypointIndex = 0;
 
       function tick() {
         if (crashed) return;
         var elapsed = (performance.now() - startTime) / 1000;
-        var distanceTraveled = speed * elapsed;
+        lastCar.object3D.position.set(startPos.x, startPos.y, startPos.z - speed * elapsed);
 
-        // Calculate which waypoint segment we're on
-        var totalDistance = 0;
-        var currentWaypoint = 0;
-        var segmentProgress = 0;
-
-        for (var i = 0; i < trackWaypoints.length - 1; i++) {
-          var p1 = trackWaypoints[i];
-          var p2 = trackWaypoints[i + 1];
-          var segmentLength = Math.sqrt(
-            Math.pow(p2.x - p1.x, 2) + Math.pow(p2.z - p1.z, 2)
-          );
-
-          if (totalDistance + segmentLength >= distanceTraveled) {
-            currentWaypoint = i;
-            segmentProgress = (distanceTraveled - totalDistance) / segmentLength;
-            break;
-          }
-          totalDistance += segmentLength;
-        }
-
-        if (currentWaypoint >= trackWaypoints.length - 1) {
-          driving = false;
-          log('drive finished, no collision!');
-          return;
-        }
-
-        // Interpolate between waypoints
-        var p1 = trackWaypoints[currentWaypoint];
-        var p2 = trackWaypoints[currentWaypoint + 1];
-        var interpX = p1.x + (p2.x - p1.x) * segmentProgress;
-        var interpZ = p1.z + (p2.z - p1.z) * segmentProgress;
-
-        // Calculate rotation to face direction of travel
-        var dirX = p2.x - p1.x;
-        var dirZ = p2.z - p1.z;
-        var angle = Math.atan2(dirX, dirZ);
-        var rotationY = -angle * (180 / Math.PI);
-
-        // Update car position and rotation
-        lastCar.object3D.position.set(
-          trackPos.x + interpX,
-          startPos.y,
-          trackPos.z + interpZ
-        );
-        lastCar.setAttribute('rotation', '0 ' + rotationY + ' 0');
-
-        // Check collision with cones
         var cones = container.querySelectorAll('[data-piece-type="cone-model"]');
         for (var i = 0; i < cones.length; i++) {
           var conePos = cones[i].object3D.position;
@@ -180,14 +111,12 @@
           if (dist < 0.15) {
             crashed = true;
             driving = false;
-            log('CRASH detected with cone!');
             flashScreen();
             return;
           }
         }
-
-        if (elapsed < 10) { requestAnimationFrame(tick); }
-        else { driving = false; log('drive finished, no collision'); }
+        if (elapsed < 5) { requestAnimationFrame(tick); }
+        else { driving = false; }
       }
       requestAnimationFrame(tick);
     });
