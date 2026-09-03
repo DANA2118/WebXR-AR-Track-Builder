@@ -76,9 +76,9 @@
         lastCar = piece;
       }
 
+      log('placed ' + currentType + ' at ' + pos.x.toFixed(2) + ',' + pos.y.toFixed(2) + ',' + pos.z.toFixed(2));
       piece.addEventListener('model-error', function (e) { log(currentType + ' FAILED: ' + JSON.stringify(e.detail)); });
       container.appendChild(piece);
-      log('placed ' + currentType);
     });
 
     function flashScreen() {
