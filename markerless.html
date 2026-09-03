@@ -65,6 +65,8 @@
     scene.addEventListener('ar-hit-test-start', function () { log('scanning for surface...'); });
     scene.addEventListener('ar-hit-test-achieved', function () { log('surface found, ready to place'); });
     scene.addEventListener('ar-hit-test-select', function () {
+      if (driving) { log('ignored tap - car is driving'); return; }   // fix #1
+
       var pos = reticle.object3D.position;
       var piece = document.createElement('a-entity');
       piece.setAttribute('gltf-model', '#' + currentType);
@@ -73,6 +75,7 @@
 
       if (currentType === 'car-model') {
         piece.setAttribute('scale', '0.001 0.001 0.001');
+        piece.setAttribute('rotation', '0 180 0');   // fix #2 — flip back to "0 0 0" if this makes it worse, not better
         lastCar = piece;
       }
 
