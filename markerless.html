@@ -70,7 +70,12 @@
       piece.setAttribute('gltf-model', '#' + currentType);
       piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
       piece.setAttribute('data-piece-type', currentType);
-      if (currentType === 'car-model') { lastCar = piece; }
+
+      if (currentType === 'car-model') {
+        piece.setAttribute('scale', '0.001 0.001 0.001');
+        lastCar = piece;
+      }
+
       piece.addEventListener('model-error', function (e) { log(currentType + ' FAILED: ' + JSON.stringify(e.detail)); });
       container.appendChild(piece);
       log('placed ' + currentType);
