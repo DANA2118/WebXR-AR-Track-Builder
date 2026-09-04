@@ -1,54 +1,41 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>WebXR AR Track Builder - Marker AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR Racing Experience</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <main class="home-container">
+    <section class="hero-card">
+      <p class="eyebrow">WebXR Racing Experience</p>
+      <h1>AR Racing Challenge</h1>
+      <p class="intro">
+        Explore the marker-based preview, then build and race on your own AR track using markerless WebXR.
+      </p>
 
-    <!-- Tap-to-start overlay: needed because mobile browsers block audio
-         autoplay unless it starts from a real user tap -->
-    <div id="start-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);
-         color:white;display:flex;align-items:center;justify-content:center;
-         z-index:9999;font-family:sans-serif;text-align:center;">
-      <div>
-        <p>Point your camera at the Hiro marker</p>
-        <button id="start-btn" style="padding:12px 24px;font-size:1em;">Start</button>
+      <div class="mode-grid">
+        <a class="mode-card" href="marker.html">
+          <span class="mode-icon">▣</span>
+          <h2>Marker-Based AR</h2>
+          <p>Scan a Hiro marker to reveal and animate the race car.</p>
+          <span class="mode-link">Open Marker Mode</span>
+        </a>
+
+        <a class="mode-card" href="markerless.html">
+          <span class="mode-icon">🏁</span>
+          <h2>Markerless Race</h2>
+          <p>Detect a surface, build a track, place obstacles and race.</p>
+          <span class="mode-link">Build a Race Track</span>
+        </a>
       </div>
-    </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
-
-      <a-assets>
-        <a-asset-item id="car-model" src="models/car.glb"></a-asset-item>
-        <audio id="engine-sound" src="sounds/engine-hum.mp3" preload="auto"></audio>
-      </a-assets>
-
-      <a-marker preset="hiro">
-        <a-entity
-          gltf-model="#car-model"
-          position="0 0 0"
-          scale="0.001 0.001 0.001"
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
-          sound="src: #engine-sound; loop: true; volume: 0.4"
-        ></a-entity>
-        <a-light type="ambient" color="#BBB"></a-light>
-        <a-light type="directional" color="#FFF" intensity="0.6" position="1 1 1"></a-light>
-      </a-marker>
-
-      <a-entity camera></a-entity>
-    </a-scene>
-
-    <script>
-      document.getElementById('start-btn').addEventListener('click', function () {
-        document.getElementById('start-overlay').style.display = 'none';
-        var carEl = document.querySelector('[sound]');
-        if (carEl && carEl.components.sound) {
-          carEl.components.sound.playSound();
-        }
-      });
-    </script>
-  </body>
+      <p class="setup-note">
+        Before running, place your <strong>road.glb</strong>, <strong>cone.glb</strong>, and <strong>car.glb</strong>
+        files inside the <strong>models</strong> folder.
+      </p>
+    </section>
+  </main>
+</body>
 </html>
