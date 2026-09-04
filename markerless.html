@@ -44,6 +44,10 @@
       <button id="drive-btn"
         style="padding:14px 18px; font-size:14px; font-weight:bold; background:#4CC3D9; color:white;">Drive!</button>
     </div>
+
+    <input type="range" id="speed-slider" min="0.1" max="1" step="0.05" value="0.3" style="position:fixed; right:20px; top:50%; z-index:9999;
+         transform:translateY(-50%) rotate(-90deg); width:140px; pointer-events:auto;">
+
   </div>
 
   <script>
@@ -53,6 +57,14 @@
     var currentType = 'track-model';
     var lastCar = null;
     var driving = false;
+    var currentSpeed = 0.3;
+    var engineSound = new Audio('sounds/engine-hum.mp3');
+    engineSound.loop = true;
+    var crashSound = new Audio('sounds/crash.mp3');
+
+    document.getElementById('speed-slider').addEventListener('input', function (e) {
+      currentSpeed = parseFloat(e.target.value);
+    });
 
     document.querySelectorAll('.piece-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -89,34 +101,41 @@
     }
 
     document.getElementById('drive-btn').addEventListener('click', function () {
-      if (!lastCar || driving) { console.log('place a car first'); return; }
+      if (!lastCar || driving) return;
       driving = true;
+      engineSound.currentTime = 0;
+      engineSound.play();
 
-      var startPos = lastCar.object3D.position.clone();
-      var startTime = performance.now();
-      var speed = 0.3;
+      var lastTime = performance.now();
+      var elapsedTotal = 0;
       var crashed = false;
 
       function tick() {
         if (crashed) return;
-        var elapsed = (performance.now() - startTime) / 1000;
-        lastCar.object3D.position.set(startPos.x, startPos.y, startPos.z - speed * elapsed);
+        var now = performance.now();
+        var dt = (now - lastTime) / 1000;
+        lastTime = now;
+        elapsedTotal += dt;
+
+        lastCar.object3D.position.z -= currentSpeed * dt;
 
         var cones = container.querySelectorAll('[data-piece-type="cone-model"]');
         for (var i = 0; i < cones.length; i++) {
           var conePos = cones[i].object3D.position;
           var dx = lastCar.object3D.position.x - conePos.x;
           var dz = lastCar.object3D.position.z - conePos.z;
-          var dist = Math.sqrt(dx * dx + dz * dz);
-          if (dist < 0.15) {
+          if (Math.sqrt(dx * dx + dz * dz) < 0.15) {
             crashed = true;
             driving = false;
+            engineSound.pause();
+            crashSound.currentTime = 0;
+            crashSound.play();
             flashScreen();
             return;
           }
         }
-        if (elapsed < 5) { requestAnimationFrame(tick); }
-        else { driving = false; }
+        if (elapsedTotal < 8) { requestAnimationFrame(tick); }
+        else { driving = false; engineSound.pause(); }
       }
       requestAnimationFrame(tick);
     });
