@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <title>AR Track Builder - Markerless</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>AR Race Track Builder</title>
   <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+  <link rel="stylesheet" href="css/race.css">
 </head>
-
-<body style="margin:0; overflow:hidden;">
-
-  <a-scene xr-mode-ui="XRMode: ar;"
+<body>
+  <a-scene
+    xr-mode-ui="XRMode: ar"
     webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;"
     ar-hit-test="target:#reticle;">
 
-    <a-assets>
+    <a-assets timeout="10000">
       <a-asset-item id="track-model" src="models/road.glb"></a-asset-item>
       <a-asset-item id="cone-model" src="models/cone.glb"></a-asset-item>
       <a-asset-item id="car-model" src="models/car.glb"></a-asset-item>
@@ -21,158 +21,60 @@
 
     <a-entity id="reticle"></a-entity>
     <a-entity id="placed-pieces"></a-entity>
+    <a-entity id="race-elements"></a-entity>
 
-    <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
-    <a-light type="directional" color="#FFF" intensity="0.8" position="1 1 1"></a-light>
+    <a-light type="ambient" color="#FFFFFF" intensity="0.8"></a-light>
+    <a-light type="directional" color="#FFFFFF" intensity="0.8" position="1 1 1"></a-light>
   </a-scene>
 
-  <div id="overlay" style="position:fixed; inset:0; pointer-events:none;">
-    <div id="hint" style="position:fixed; top:16px; left:0; right:0; text-align:center;
-         color:white; font-family:sans-serif; font-size:14px; text-shadow:0 1px 3px black;
-         pointer-events:none;">
-      Point at a floor/table &middot; pick a piece below &middot; tap to place
+  <div id="overlay">
+    <a class="back-link" href="index.html">← Home</a>
+
+    <div id="hint">
+      Point at a floor/table · choose a piece · tap to place
     </div>
 
-    <div id="picker" style="position:fixed; bottom:20px; left:0; right:0;
-         display:flex; justify-content:center; gap:10px; pointer-events:auto;">
-      <button class="piece-btn" data-type="track-model"
-        style="padding:14px 18px; font-size:14px; font-weight:bold;">Track</button>
-      <button class="piece-btn" data-type="cone-model"
-        style="padding:14px 18px; font-size:14px; font-weight:bold;">Cone</button>
-      <button class="piece-btn" data-type="car-model"
-        style="padding:14px 18px; font-size:14px; font-weight:bold;">Car</button>
-      <button id="drive-btn"
-        style="padding:14px 18px; font-size:14px; font-weight:bold; background:#4CC3D9; color:white;">Drive!</button>
+    <div id="race-hud">
+      <div id="race-status">BUILD MODE</div>
+      <div id="race-info">
+        Time: <span id="timer">0.00</span>s
+        <span class="divider">|</span>
+        Hits: <span id="hit-count">0</span>
+        <span class="divider">|</span>
+        Best: <span id="best-time">--</span>
+      </div>
     </div>
 
-    <input type="range" id="speed-slider" min="0.1" max="1" step="0.05" value="0.3" style="position:fixed; right:20px; top:50%; z-index:9999;
-         transform:translateY(-50%) rotate(-90deg); width:140px; pointer-events:auto;">
+    <div id="countdown">3</div>
 
+    <div id="result-panel">
+      <h2>🏁 Race Finished!</h2>
+      <p>Time: <strong><span id="final-time">0.00</span>s</strong></p>
+      <p>Cone Hits: <strong><span id="final-hits">0</span></strong></p>
+      <p>Penalties: <strong><span id="final-penalty">0</span>s</strong></p>
+      <p>Score: <strong><span id="final-score">0</span></strong></p>
+      <button id="retry-btn">Race Again</button>
+    </div>
+
+    <div id="steering-controls">
+      <button id="left-btn" class="steer-btn" aria-label="Steer left">◀</button>
+      <button id="right-btn" class="steer-btn" aria-label="Steer right">▶</button>
+    </div>
+
+    <div id="speed-container">
+      <span id="speed-label">SPEED</span>
+      <input type="range" id="speed-slider" min="0.15" max="1" step="0.05" value="0.35">
+    </div>
+
+    <div id="picker">
+      <button class="piece-btn active" data-type="track-model">Road</button>
+      <button class="piece-btn" data-type="cone-model">Cone</button>
+      <button class="piece-btn" data-type="car-model">Car</button>
+      <button id="race-btn">🏁 Start Race</button>
+      <button id="clear-btn">Clear</button>
+    </div>
   </div>
 
-  <script>
-    var scene = document.querySelector('a-scene');
-    var reticle = document.querySelector('#reticle');
-    var container = document.querySelector('#placed-pieces');
-    var currentType = 'track-model';
-    var lastCar = null;
-    var driving = false;
-    var currentSpeed = 0.3;
-    var floorY = null;
-    var buttonJustPressed = false;
-
-    var engineSound = new Audio('sounds/engine-hum.mp3');
-    engineSound.loop = true;
-    var crashSound = new Audio('sounds/crash.mp3');
-
-    document.getElementById('speed-slider').addEventListener('input', function (e) {
-      currentSpeed = parseFloat(e.target.value);
-    });
-
-    // button cooldown — prevents button taps leaking into the AR scene as placement taps
-    document.querySelectorAll('.piece-btn, #drive-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        buttonJustPressed = true;
-        setTimeout(function () { buttonJustPressed = false; }, 300);
-        if (btn.classList.contains('piece-btn')) {
-          currentType = btn.getAttribute('data-type');
-        }
-      });
-    });
-
-    scene.addEventListener('ar-hit-test-select', function () {
-      if (driving || buttonJustPressed) return;
-
-      var pos = reticle.object3D.position;
-
-      // lock floor level on first placement
-      if (floorY === null) floorY = pos.y;
-
-      var piece = document.createElement('a-entity');
-      piece.setAttribute('gltf-model', '#' + currentType);
-      piece.setAttribute('data-piece-type', currentType);
-
-      if (currentType === 'car-model') {
-        piece.setAttribute('scale', '0.001 0.001 0.001');
-        piece.setAttribute('rotation', '0 180 0');
-        piece.setAttribute('position', pos.x + ' ' + (floorY + 0.05) + ' ' + pos.z);
-        lastCar = piece;
-      } else {
-        // road and cone always snap to locked floor level
-        piece.setAttribute('position', pos.x + ' ' + floorY + ' ' + pos.z);
-      }
-
-      piece.addEventListener('model-error', function (e) { console.error(currentType, 'FAILED', e.detail); });
-      container.appendChild(piece);
-    });
-
-    function flashScreen() {
-      var flash = document.createElement('div');
-      flash.style.cssText = 'position:fixed;inset:0;background:red;opacity:0.6;pointer-events:none;z-index:9998;';
-      document.getElementById('overlay').appendChild(flash);
-      setTimeout(function () { flash.remove(); }, 400);
-    }
-
-    document.getElementById('drive-btn').addEventListener('click', function () {
-      if (!lastCar || driving) return;
-      driving = true;
-      engineSound.currentTime = 0;
-      engineSound.play();
-
-      // find the furthest Z extent of all placed road tiles
-      var roadPieces = container.querySelectorAll('[data-piece-type="track-model"]');
-      var roadEndZ = lastCar.object3D.position.z; // fallback if no roads placed
-      roadPieces.forEach(function (r) {
-        var rz = r.object3D.position.z;
-        // road tile is 2.5m long, car drives in -Z direction
-        // so the "end" of each tile is rz - 1.25 (half its length)
-        var tileEnd = rz - 1.25;
-        if (tileEnd < roadEndZ) roadEndZ = tileEnd;
-      });
-
-      var lastTime = performance.now();
-      var elapsedTotal = 0;
-      var crashed = false;
-
-      function tick() {
-        if (crashed) return;
-        var now = performance.now();
-        var dt = (now - lastTime) / 1000;
-        lastTime = now;
-        elapsedTotal += dt;
-
-        lastCar.object3D.position.z -= currentSpeed * dt;
-
-        // stop when car reaches end of road
-        if (lastCar.object3D.position.z <= roadEndZ) {
-          driving = false;
-          engineSound.pause();
-          return;
-        }
-
-        // collision check
-        var cones = container.querySelectorAll('[data-piece-type="cone-model"]');
-        for (var i = 0; i < cones.length; i++) {
-          var conePos = cones[i].object3D.position;
-          var dx = lastCar.object3D.position.x - conePos.x;
-          var dz = lastCar.object3D.position.z - conePos.z;
-          if (Math.sqrt(dx * dx + dz * dz) < 0.15) {
-            crashed = true;
-            driving = false;
-            engineSound.pause();
-            crashSound.currentTime = 0;
-            crashSound.play();
-            flashScreen();
-            return;
-          }
-        }
-
-        if (elapsedTotal < 15) { requestAnimationFrame(tick); }
-        else { driving = false; engineSound.pause(); }
-      }
-      requestAnimationFrame(tick);
-    });
-  </script>
+  <script type="module" src="js/markerless/main.js"></script>
 </body>
-
 </html>
