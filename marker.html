@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>AR Racing - Marker Mode</title>
+  <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.7/aframe/build/aframe-ar.js"></script>
+  <link rel="stylesheet" href="css/marker.css">
+</head>
+<body>
+  <div id="marker-ui">
+    <a class="back-link" href="index.html">← Home</a>
+    <div class="marker-card">
+      <strong>Marker-Based AR</strong>
+      <span id="marker-status">Show a Hiro marker to the camera</span>
+      <a class="builder-link" href="markerless.html">Open Track Builder</a>
+    </div>
+  </div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; antialias: true"
+    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
+
+    <a-assets timeout="10000">
+      <a-asset-item id="car-model" src="models/car.glb"></a-asset-item>
+    </a-assets>
+
+    <a-marker preset="hiro" id="race-marker" emitevents="true">
+      <a-entity id="marker-content" position="0 0 0">
+        <a-entity
+          id="marker-car"
+          gltf-model="#car-model"
+          scale="0.01 0.01 0.01"
+          rotation="0 180 0"
+          position="0 0.15 0">
+        </a-entity>
+
+        <a-text
+          value="AR RACING CHALLENGE"
+          align="center"
+          color="#FFFFFF"
+          width="2.4"
+          position="0 1.05 0"
+          rotation="-90 0 0">
+        </a-text>
+
+        <a-text
+          value="Build. Dodge. Race."
+          align="center"
+          color="#4CC3D9"
+          width="2"
+          position="0 0.82 0"
+          rotation="-90 0 0">
+        </a-text>
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script type="module" src="js/marker/markerMain.js"></script>
+</body>
+</html>
