@@ -79,13 +79,15 @@
       var pos = reticle.object3D.position;
       var piece = document.createElement('a-entity');
       piece.setAttribute('gltf-model', '#' + currentType);
-      piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
       piece.setAttribute('data-piece-type', currentType);
 
       if (currentType === 'car-model') {
         piece.setAttribute('scale', '0.001 0.001 0.001');
         piece.setAttribute('rotation', '0 180 0');
+        piece.setAttribute('position', pos.x + ' ' + (pos.y + 0.05) + ' ' + pos.z);
         lastCar = piece;
+      } else {
+        piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
       }
 
       console.log('placed', currentType, 'at', pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2));
