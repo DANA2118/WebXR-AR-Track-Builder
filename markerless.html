@@ -58,6 +58,9 @@
     var lastCar = null;
     var driving = false;
     var currentSpeed = 0.3;
+    var floorY = null;
+    var buttonJustPressed = false;
+
     var engineSound = new Audio('sounds/engine-hum.mp3');
     engineSound.loop = true;
     var crashSound = new Audio('sounds/crash.mp3');
@@ -66,17 +69,25 @@
       currentSpeed = parseFloat(e.target.value);
     });
 
-    document.querySelectorAll('.piece-btn').forEach(function (btn) {
+    // button cooldown — prevents button taps leaking into the AR scene as placement taps
+    document.querySelectorAll('.piece-btn, #drive-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        currentType = btn.getAttribute('data-type');
-        console.log('selected:', currentType);
+        buttonJustPressed = true;
+        setTimeout(function () { buttonJustPressed = false; }, 300);
+        if (btn.classList.contains('piece-btn')) {
+          currentType = btn.getAttribute('data-type');
+        }
       });
     });
 
     scene.addEventListener('ar-hit-test-select', function () {
-      if (driving) { console.log('ignored tap - car is driving'); return; }
+      if (driving || buttonJustPressed) return;
 
       var pos = reticle.object3D.position;
+
+      // lock floor level on first placement
+      if (floorY === null) floorY = pos.y;
+
       var piece = document.createElement('a-entity');
       piece.setAttribute('gltf-model', '#' + currentType);
       piece.setAttribute('data-piece-type', currentType);
@@ -84,13 +95,13 @@
       if (currentType === 'car-model') {
         piece.setAttribute('scale', '0.001 0.001 0.001');
         piece.setAttribute('rotation', '0 180 0');
-        piece.setAttribute('position', pos.x + ' ' + (pos.y + 0.05) + ' ' + pos.z);
+        piece.setAttribute('position', pos.x + ' ' + (floorY + 0.05) + ' ' + pos.z);
         lastCar = piece;
       } else {
-        piece.setAttribute('position', pos.x + ' ' + pos.y + ' ' + pos.z);
+        // road and cone always snap to locked floor level
+        piece.setAttribute('position', pos.x + ' ' + floorY + ' ' + pos.z);
       }
 
-      console.log('placed', currentType, 'at', pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2));
       piece.addEventListener('model-error', function (e) { console.error(currentType, 'FAILED', e.detail); });
       container.appendChild(piece);
     });
@@ -108,6 +119,17 @@
       engineSound.currentTime = 0;
       engineSound.play();
 
+      // find the furthest Z extent of all placed road tiles
+      var roadPieces = container.querySelectorAll('[data-piece-type="track-model"]');
+      var roadEndZ = lastCar.object3D.position.z; // fallback if no roads placed
+      roadPieces.forEach(function (r) {
+        var rz = r.object3D.position.z;
+        // road tile is 2.5m long, car drives in -Z direction
+        // so the "end" of each tile is rz - 1.25 (half its length)
+        var tileEnd = rz - 1.25;
+        if (tileEnd < roadEndZ) roadEndZ = tileEnd;
+      });
+
       var lastTime = performance.now();
       var elapsedTotal = 0;
       var crashed = false;
@@ -121,6 +143,14 @@
 
         lastCar.object3D.position.z -= currentSpeed * dt;
 
+        // stop when car reaches end of road
+        if (lastCar.object3D.position.z <= roadEndZ) {
+          driving = false;
+          engineSound.pause();
+          return;
+        }
+
+        // collision check
         var cones = container.querySelectorAll('[data-piece-type="cone-model"]');
         for (var i = 0; i < cones.length; i++) {
           var conePos = cones[i].object3D.position;
@@ -136,7 +166,8 @@
             return;
           }
         }
-        if (elapsedTotal < 8) { requestAnimationFrame(tick); }
+
+        if (elapsedTotal < 15) { requestAnimationFrame(tick); }
         else { driving = false; engineSound.pause(); }
       }
       requestAnimationFrame(tick);
