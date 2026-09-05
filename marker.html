@@ -10,13 +10,10 @@
 
     <title>AR Racing - Marker Mode</title>
 
-    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
-    <!-- AR.js -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
-    <!-- Marker page styles -->
     <link rel="stylesheet" href="css/marker.css">
 </head>
 
@@ -32,9 +29,6 @@
         detectionMode: mono;
     ">
 
-    <!-- =========================
-         ASSETS
-         ========================= -->
     <a-assets>
 
         <a-asset-item
@@ -60,13 +54,9 @@
             gltf-model="#car-model"
             position="0 0.05 0"
             rotation="0 180 0"
-            scale="0.006 0.006 0.006">
+            scale="0.01 0.01 0.01">
         </a-entity>
 
-
-        <!-- =========================
-             TITLE TEXT
-             ========================= -->
         <a-text
             value="AR Racing Challenge"
             position="0 0.75 0"
@@ -77,9 +67,6 @@
         </a-text>
 
 
-        <!-- =========================
-             SUB TEXT
-             ========================= -->
         <a-text
             value="Build your own AR race track!"
             position="0 0.48 0"
@@ -89,10 +76,6 @@
             width="1.6">
         </a-text>
 
-
-        <!-- =========================
-             SMALL PLATFORM UNDER CAR
-             ========================= -->
         <a-cylinder
             position="0 0.01 0"
             radius="0.45"
@@ -103,18 +86,10 @@
 
     </a-marker>
 
-
-    <!-- =========================
-         CAMERA
-         ========================= -->
     <a-entity camera></a-entity>
 
 </a-scene>
 
-
-<!-- =========================
-     UI OVERLAY
-     ========================= -->
 <div
     style="
         position: fixed;
