@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -11,34 +10,31 @@
 
     <title>AR Racing - Marker Mode</title>
 
-    <script
-        src="https://aframe.io/releases/1.8.0/aframe.min.js">
-    </script>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
 
-    <script
-        src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js">
-    </script>
+    <!-- AR.js -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
-    <link
-        rel="stylesheet"
-        href="css/marker.css">
-
+    <!-- Marker page styles -->
+    <link rel="stylesheet" href="css/marker.css">
 </head>
-
 
 <body>
 
-
 <a-scene
-
     embedded
-
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true;"
     arjs="
         sourceType: webcam;
         debugUIEnabled: false;
+        detectionMode: mono;
     ">
 
-
+    <!-- =========================
+         ASSETS
+         ========================= -->
     <a-assets>
 
         <a-asset-item
@@ -49,59 +45,141 @@
     </a-assets>
 
 
+    <!-- =========================
+         HIRO MARKER
+         ========================= -->
     <a-marker
-        preset="hiro"
-        id="race-marker">
+        id="race-marker"
+        preset="hiro">
 
-
-        <!-- Smaller car -->
-
+        <!-- =========================
+             CAR MODEL
+             ========================= -->
         <a-entity
-
             id="marker-car"
-
             gltf-model="#car-model"
-
-            scale="0.003 0.003 0.003"
-
-            position="0 0.15 0"
-
-            rotation="0 180 0">
-
+            position="0 0.05 0"
+            rotation="0 180 0"
+            scale="0.006 0.006 0.006">
         </a-entity>
 
 
+        <!-- =========================
+             TITLE TEXT
+             ========================= -->
         <a-text
-
             value="AR Racing Challenge"
-
-            position="0 0.8 0"
-
+            position="0 0.75 0"
             rotation="-90 0 0"
-
             align="center"
-
             color="#FFFFFF"
-
             width="2">
-
         </a-text>
 
+
+        <!-- =========================
+             SUB TEXT
+             ========================= -->
+        <a-text
+            value="Build your own AR race track!"
+            position="0 0.48 0"
+            rotation="-90 0 0"
+            align="center"
+            color="#4CC3D9"
+            width="1.6">
+        </a-text>
+
+
+        <!-- =========================
+             SMALL PLATFORM UNDER CAR
+             ========================= -->
+        <a-cylinder
+            position="0 0.01 0"
+            radius="0.45"
+            height="0.02"
+            color="#222222"
+            opacity="0.75">
+        </a-cylinder>
 
     </a-marker>
 
 
+    <!-- =========================
+         CAMERA
+         ========================= -->
     <a-entity camera></a-entity>
-
 
 </a-scene>
 
 
+<!-- =========================
+     UI OVERLAY
+     ========================= -->
+<div
+    style="
+        position: fixed;
+        top: 15px;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        text-align: center;
+        pointer-events: none;
+        font-family: Arial, sans-serif;
+        color: white;
+        text-shadow: 0 1px 5px black;
+    ">
+
+    <div
+        style="
+            display: inline-block;
+            padding: 10px 16px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 12px;
+        ">
+
+        Point the camera at the Hiro marker
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     BACK BUTTON
+     ========================= -->
+<a
+    href="index.html"
+    style="
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 20;
+
+        padding: 12px 16px;
+
+        border-radius: 10px;
+
+        background: rgba(0,0,0,0.7);
+        color: white;
+
+        font-family: Arial, sans-serif;
+        font-weight: bold;
+
+        text-decoration: none;
+    ">
+
+    ← Home
+
+</a>
+
+
+<!-- =========================
+     MARKER JS
+     ========================= -->
 <script
     type="module"
     src="js/marker/markerMain.js">
 </script>
-
 
 </body>
 
