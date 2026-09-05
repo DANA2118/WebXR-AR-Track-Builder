@@ -1,35 +1,133 @@
-const marker = document.getElementById('race-marker');
-const car = document.getElementById('marker-car');
-const status = document.getElementById('marker-status');
+const target =
+  document.getElementById(
+    'lamborghini-target'
+  );
 
-let animationFrame = null;
-let lastTime = performance.now();
 
-function animate(time) {
-  const deltaSeconds = (time - lastTime) / 1000;
-  lastTime = time;
+const trackingStatus =
+  document.getElementById(
+    'tracking-status'
+  );
 
-  if (car) {
-    car.object3D.rotation.y += deltaSeconds * 0.8;
-    const bob = 0.15 + Math.sin(time / 450) * 0.025;
-    car.object3D.position.y = bob;
+
+const markerMessage =
+  document.getElementById(
+    'marker-message'
+  );
+
+
+const startRaceButton =
+  document.getElementById(
+    'start-race-btn'
+  );
+
+
+const markerCar =
+  document.getElementById(
+    'marker-car'
+  );
+
+
+startRaceButton.style.display =
+  'none';
+
+target.addEventListener(
+  'targetFound',
+  () => {
+
+    console.log(
+      'Lamborghini marker detected'
+    );
+
+
+    trackingStatus.textContent =
+      '✓ Lamborghini marker detected';
+
+
+    trackingStatus.classList.remove(
+      'tracking-searching'
+    );
+
+
+    trackingStatus.classList.add(
+      'tracking-found'
+    );
+
+
+    markerMessage.textContent =
+      'AR Racing Challenge Ready!';
+
+
+    startRaceButton.style.display =
+      'block';
+
+
+    animateCar();
+
+  }
+);
+
+target.addEventListener(
+  'targetLost',
+  () => {
+
+    console.log(
+      'Lamborghini marker lost'
+    );
+
+
+    trackingStatus.textContent =
+      'Searching for marker...';
+
+
+    trackingStatus.classList.remove(
+      'tracking-found'
+    );
+
+
+    trackingStatus.classList.add(
+      'tracking-searching'
+    );
+
+
+    markerMessage.textContent =
+      'Point your camera at the Lamborghini marker';
+
+
+    startRaceButton.style.display =
+      'none';
+
+  }
+);
+
+function animateCar() {
+
+  if (!markerCar) {
+    return;
   }
 
-  animationFrame = requestAnimationFrame(animate);
+
+  markerCar.setAttribute(
+    'animation__rotation',
+    {
+      property:
+        'rotation',
+
+      from:
+        '0 180 0',
+
+      to:
+        '0 540 0',
+
+      dur:
+        6000,
+
+      easing:
+        'linear',
+
+      loop:
+        true
+    }
+  );
+
 }
-
-marker.addEventListener('markerFound', () => {
-  status.textContent = 'Marker detected — race car activated';
-  lastTime = performance.now();
-  if (!animationFrame) {
-    animationFrame = requestAnimationFrame(animate);
-  }
-});
-
-marker.addEventListener('markerLost', () => {
-  status.textContent = 'Marker lost — show the Hiro marker again';
-  if (animationFrame) {
-    cancelAnimationFrame(animationFrame);
-    animationFrame = null;
-  }
-});
